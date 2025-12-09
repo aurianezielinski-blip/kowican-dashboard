@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kowican Treasury Management Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Libre+Franklin:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e3c72;
+            --secondary: #2a5298;
+            --accent: #5dade2;
+            --accent-light: #85c1e9;
+            --success: #3498db;
+            --warning: #5dade2;
+            --info: #3498db;
+            --light: #ebf5fb;
+            --text: #2c3e50;
+            --bg: #f8f9fa;
+            --card-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: 'Libre Franklin', sans-serif;
+            background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text);
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 3rem 3rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .key-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.2);
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Crimson Pro', serif;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 3rem;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-family: 'Crimson Pro', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .insight-card {
+            background: linear-gradient(135deg, #d6eaf8 0%, #aed6f1 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--info);
+        }
+
+        .insight-card.warning {
+            background: linear-gradient(135deg, #85c1e9 0%, #5dade2 100%);
+            border-left-color: #3498db;
+        }
+
+        .insight-card.danger {
+            background: linear-gradient(135deg, #5dade2 0%, #3498db 100%);
+            border-left-color: #2874a6;
+        }
+
+        .insight-card.success {
+            background: linear-gradient(135deg, #aed6f1 0%, #2980b9 100%);
+            border-left-color: #1a5276;
+        }
+
+        .insight-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .insight-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        thead {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+
+        th {
+            padding: 1.2rem;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-positive {
+            background: #d6eaf8;
+            color: #154360;
+        }
+
+        .status-negative {
+            background: #85c1e9;
+            color: #0b5394;
+        }
+
+        .status-neutral {
+            background: #aed6f1;
+            color: #1a5276;
+        }
+
+        .recommendations {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: 12px;
+            margin-top: 3rem;
+        }
+
+        .recommendations h3 {
+            font-family: 'Crimson Pro', serif;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .recommendation-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .recommendation-item {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid white;
+        }
+
+        .recommendation-item h4 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .content {
+                padding: 1.5rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        .legend-custom {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header with Key Metrics -->
+        <div class="header">
+            <div class="header-content">
+                <h1>Kowican Treasury Management Dashboard</h1>
+                <p class="subtitle">Intelligent Treasury Management - Financial Performance Overview 2024</p>
+                
+                <div class="key-metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Annual Revenue</div>
+                        <div class="metric-value">€178.5M</div>
+                        <div class="metric-change">Multi-currency operations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Cash Conversion Cycle</div>
+                        <div class="metric-value">-3 days</div>
+                        <div class="metric-change">Excellent efficiency</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">EUR Liquidity Gap</div>
+                        <div class="metric-value">-€1.46M</div>
+                        <div class="metric-change">Critical attention required</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">JPY Surplus</div>
+                        <div class="metric-value">¥28.4M</div>
+                        <div class="metric-change">Liquidity buffer</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Accounts Receivable</div>
+                        <div class="metric-value">€13.7M</div>
+                        <div class="metric-change">52 days DSO</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Accounts Payable</div>
+                        <div class="metric-value">€5.0M</div>
+                        <div class="metric-change">56 days DPO</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Working Capital Analysis -->
+            <section class="section">
+                <h2 class="section-title">I. Working Capital Dynamics</h2>
+                <p class="section-subtitle">Analysis of cash conversion cycle, receivables, and payables performance across multiple currencies</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Working Capital Cycle Components</h3>
+                        <div class="chart-container">
+                            <canvas id="workingCapitalChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">Days Sales Outstanding by Currency</h3>
+                        <div class="chart-container">
+                            <canvas id="dsoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card success">
+                        <div class="insight-title">Strong Working Capital Position</div>
+                        <div class="insight-text">Negative CCC of 3 days demonstrates exceptional efficiency - cash is collected before supplier payments are due.</div>
+                    </div>
+                    <div class="insight-card warning">
+                        <div class="insight-title">DSO-DPO Discrepancy</div>
+                        <div class="insight-text">Aggregate DSO (137 days EUR, 134 days JPY) significantly exceeds customer-level collection periods (55-57 days), suggesting older receivables requiring investigation.</div>
+                    </div>
+                    <div class="insight-card danger">
+                        <div class="insight-title">Overdue Payables Risk</div>
+                        <div class="insight-text">64% of EUR payables exceed 90 days, creating supplier relationship pressure and potential supply chain risks.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multi-Currency Exposure -->
+            <section class="section">
+                <h2 class="section-title">II. Multi-Currency Position & Liquidity</h2>
+                <p class="section-subtitle">Revenue distribution, currency exposure, and liquidity position across EUR, JPY, and USD</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Revenue Distribution by Currency</h3>
+                        <div class="chart-container">
+                            <canvas id="revenueDistChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">Liquidity Position by Currency (€ Equivalent)</h3>
+                        <div class="chart-container">
+                            <canvas id="liquidityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Currency</th>
+                                <th>Position</th>
+                                <th>€ Equivalent</th>
+                                <th>% of Total Activity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>EUR</strong></td>
+                                <td>-€1,460,000</td>
+                                <td>-€1,460,000</td>
+                                <td>88%</td>
+                                <td><span class="status-badge status-negative">Critical Deficit</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>JPY</strong></td>
+                                <td>¥28,400,000</td>
+                                <td>+€157,000</td>
+                                <td>10%</td>
+                                <td><span class="status-badge status-positive">Surplus</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>USD</strong></td>
+                                <td>-$299,055</td>
+                                <td>-€260,000</td>
+                                <td>2%</td>
+                                <td><span class="status-badge status-neutral">Moderate Deficit</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Quarterly Cash Flow Analysis -->
+            <section class="section">
+                <h2 class="section-title">III. Quarterly Cash Flow Performance</h2>
+                <p class="section-subtitle">Evolution of operating cash flows throughout 2024 showing Q3 volatility and Q4 recovery</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3 class="chart-title">Quarterly Cash Flow Trends (€M)</h3>
+                        <div class="chart-container">
+                            <canvas id="cashFlowChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card warning">
+                        <div class="insight-title">Q3 Volatility Observed</div>
+                        <div class="insight-text">Third quarter showed significant cash flow fluctuations, requiring enhanced monitoring and control measures.</div>
+                    </div>
+                    <div class="insight-card success">
+                        <div class="insight-title">Strong Q4 Recovery</div>
+                        <div class="insight-text">Fourth quarter demonstrated solid operational stability with improved cash generation, indicating effective management response.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FX Risk Analysis -->
+            <section class="section">
+                <h2 class="section-title">IV. Foreign Exchange Risk Exposure</h2>
+                <p class="section-subtitle">Sensitivity analysis and risk concentration across JPY and USD positions through March 2025</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">FX Exposure by Currency (€ Equivalent)</h3>
+                        <div class="chart-container">
+                            <canvas id="fxExposureChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">FX Sensitivity Analysis (±5% Shock)</h3>
+                        <div class="chart-container">
+                            <canvas id="fxSensitivityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Scenario</th>
+                                <th>JPY Position</th>
+                                <th>USD Position</th>
+                                <th>Total FX Impact</th>
+                                <th>Risk Assessment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Baseline (March 2025)</strong></td>
+                                <td>¥62.1M (€343,632)</td>
+                                <td>-$299,055 (-€260,048)</td>
+                                <td>€83,584</td>
+                                <td><span class="status-badge status-neutral">Moderate</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>JPY -5% Depreciation</strong></td>
+                                <td>€326,451</td>
+                                <td>-€260,048</td>
+                                <td>-€17,180 Loss</td>
+                                <td><span class="status-badge status-negative">High Risk</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>USD +5% Appreciation</strong></td>
+                                <td>€343,632</td>
+                                <td>-€273,735</td>
+                                <td>-€13,687 Loss</td>
+                                <td><span class="status-badge status-negative">Elevated Risk</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Combined Adverse</strong></td>
+                                <td>€326,451</td>
+                                <td>-€273,735</td>
+                                <td>-€30,868 Loss</td>
+                                <td><span class="status-badge status-negative">Critical Risk</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card danger">
+                        <div class="insight-title">Concentrated March 2025 Risk</div>
+                        <div class="insight-text">Maximum FX exposure occurs in March 2025 with large long JPY position (¥62.1M) coinciding with significant USD obligations (-$299K), creating timing mismatch requiring active hedging.</div>
+                    </div>
+                    <div class="insight-card warning">
+                        <div class="insight-title">Asymmetrical Risk Profile</div>
+                        <div class="insight-text">Company is most vulnerable to JPY depreciation and USD appreciation, with potential combined loss of €30,868 under 5% adverse movements.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Strategic Recommendations -->
+            <div class="recommendations">
+                <h3>Strategic Recommendations & Action Plan</h3>
+                <div class="recommendation-list">
+                    <div class="recommendation-item">
+                        <h4>1. Immediate EUR Liquidity Management</h4>
+                        <p>Address the critical EUR deficit of €1.46M through structured conversion of JPY surplus and securing competitive short-term credit facilities. Prioritize low-cost funding sources such as commercial paper or bank credit lines priced at competitive spreads.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>2. Forward Contract Hedging Strategy</h4>
+                        <p><strong>JPY Position:</strong> Implement progressive hedging for Jan-Mar 2025 inflows at 50-70% coverage initially, increasing as invoices confirm. <strong>USD Position:</strong> Hedge March 2025 outflows at 70-100% ratio to eliminate dollar appreciation risk on contractual obligations.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>3. Natural Hedge Development</h4>
+                        <p>Reduce structural FX exposure through operational adjustments: Use JPY inflows to settle local Japanese supplier invoices directly, expand local supplier contracts, and increase USD-denominated revenue to offset March 2025 USD outflows.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>4. Intercompany Netting Implementation</h4>
+                        <p>Establish centralized treasury or automated netting platform across French, German, and Japanese subsidiaries to consolidate and offset payables and receivables, reducing external conversion volumes, banking fees, and focusing hedging on true consolidated net positions.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>5. Receivables Investigation & Collection</h4>
+                        <p>Conduct thorough analysis of older receivables causing the discrepancy between aggregate DSO (137 days EUR) and customer-level collection periods (55-57 days). Implement accelerated collection procedures and review credit policies.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>6. Supplier Relationship Management</h4>
+                        <p>Address 64% of EUR payables exceeding 90 days overdue status through negotiated payment plans, improved cash flow forecasting, and strengthened supplier communication to preserve supply chain reliability.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>7. Investment Strategy Optimization</h4>
+                        <p>Treat every investment decision as an alternative to reducing funding needs. Prioritize highly liquid short-term placements (money-market funds, term deposits, Treasury bills) over longer-dated products. Only invest JPY surplus if returns exceed implicit EUR conversion and funding costs.</p>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <h4>8. Data Quality & Automation Enhancement</h4>
+                        <p>Implement rigorous data validation protocols and enhanced reconciliation procedures to prevent the data integrity issues encountered during analysis. Develop robust automated reporting systems with built-in validation checks.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js Configuration
+        Chart.defaults.font.family = "'Libre Franklin', sans-serif";
+        Chart.defaults.color = '#2c3e50';
+
+        const chartColors = {
+            primary: '#2a5298',
+            secondary: '#3498db',
+            accent: '#5dade2',
+            warning: '#85c1e9',
+            info: '#1e3c72',
+            success: '#2980b9',
+            purple: '#154360',
+            orange: '#5dade2'
+        };
+
+        // 1. Working Capital Cycle Chart
+        const wcCtx = document.getElementById('workingCapitalChart').getContext('2d');
+        new Chart(wcCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Days Sales Outstanding', 'Days Inventory Outstanding', 'Days Payables Outstanding', 'Cash Conversion Cycle'],
+                datasets: [{
+                    label: 'Days',
+                    data: [52, 7, 56, -3],
+                    backgroundColor: [
+                        '#2a5298',
+                        '#3498db',
+                        '#5dade2',
+                        '#2980b9'
+                    ],
+                    borderRadius: 8,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + ' days';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' days';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 2. DSO by Currency Chart
+        const dsoCtx = document.getElementById('dsoChart').getContext('2d');
+        new Chart(dsoCtx, {
+            type: 'bar',
+            data: {
+                labels: ['EUR Aggregate', 'EUR Customer-Level', 'JPY Aggregate', 'JPY Customer-Level'],
+                datasets: [{
+                    label: 'DSO (Days)',
+                    data: [137, 55, 134, 45],
+                    backgroundColor: [
+                        '#5dade2',
+                        '#2980b9',
+                        '#85c1e9',
+                        '#3498db'
+                    ],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return value + ' days';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 3. Revenue Distribution Chart
+        const revCtx = document.getElementById('revenueDistChart').getContext('2d');
+        new Chart(revCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['EUR (88%)', 'JPY (10%)', 'USD (2%)'],
+                datasets: [{
+                    data: [88, 10, 2],
+                    backgroundColor: [
+                        '#2a5298',
+                        '#5dade2',
+                        '#85c1e9'
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: { size: 13 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': €' + (context.parsed * 1.785).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 4. Liquidity Position Chart
+        const liqCtx = document.getElementById('liquidityChart').getContext('2d');
+        new Chart(liqCtx, {
+            type: 'bar',
+            data: {
+                labels: ['EUR', 'JPY', 'USD', 'Net Position'],
+                datasets: [{
+                    label: '€ Equivalent (thousands)',
+                    data: [-1460, 157, -260, -1563],
+                    backgroundColor: function(context) {
+                        const value = context.raw;
+                        return value < 0 ? '#5dade2' : '#2980b9';
+                    },
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '€' + context.parsed.y.toLocaleString() + 'K';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value.toLocaleString() + 'K';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 5. Quarterly Cash Flow Chart
+        const cfCtx = document.getElementById('cashFlowChart').getContext('2d');
+        new Chart(cfCtx, {
+            type: 'line',
+            data: {
+                labels: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                datasets: [
+                    {
+                        label: 'Operating Cash Flow',
+                        data: [42.5, 45.2, 38.1, 52.7],
+                        borderColor: '#2a5298',
+                        backgroundColor: 'rgba(42, 82, 152, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Collections',
+                        data: [46.8, 47.5, 42.3, 55.9],
+                        borderColor: '#2980b9',
+                        backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Payments',
+                        data: [-43.2, -44.8, -46.5, -48.1],
+                        borderColor: '#5dade2',
+                        backgroundColor: 'rgba(93, 173, 226, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': €' + Math.abs(context.parsed.y).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value + 'M';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 6. FX Exposure Chart
+        const fxExpCtx = document.getElementById('fxExposureChart').getContext('2d');
+        new Chart(fxExpCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Jan 2025', 'Feb 2025', 'Mar 2025'],
+                datasets: [
+                    {
+                        label: 'JPY Exposure',
+                        data: [285, 312, 344],
+                        backgroundColor: '#5dade2',
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'USD Exposure',
+                        data: [-45, -78, -260],
+                        backgroundColor: '#85c1e9',
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': €' + Math.abs(context.parsed.y).toLocaleString() + 'K';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value + 'K';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+
+        // 7. FX Sensitivity Analysis Chart
+        const fxSensCtx = document.getElementById('fxSensitivityChart').getContext('2d');
+        new Chart(fxSensCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Baseline', 'JPY -5%', 'USD +5%', 'Combined Adverse'],
+                datasets: [{
+                    label: 'Net FX Impact (€K)',
+                    data: [83.6, 66.4, 69.9, 52.7],
+                    backgroundColor: [
+                        '#2980b9',
+                        '#5dade2',
+                        '#5dade2',
+                        '#85c1e9'
+                    ],
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const baseline = 83.6;
+                                const value = context.parsed.y;
+                                const loss = baseline - value;
+                                if (loss > 0) {
+                                    return 'Loss: €' + loss.toFixed(1) + 'K';
+                                }
+                                return 'Value: €' + value.toFixed(1) + 'K';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + value + 'K';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
