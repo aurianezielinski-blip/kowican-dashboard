@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kowican Treasury Management Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Libre+Franklin:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {margin: 0;padding: 0;box-sizing: border-box;}
+        :root {
+            --primary: #1e3c72;--secondary: #2a5298;--accent: #5dade2;--accent-light: #85c1e9;
+            --success: #3498db;--warning: #5dade2;--info: #3498db;--light: #ebf5fb;
+            --text: #2c3e50;--bg: #f8f9fa;--card-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        body {font-family: 'Libre Franklin', sans-serif;background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);min-height: 100vh;padding: 2rem;color: var(--text);}
+        .dashboard-container {max-width: 1600px;margin: 0 auto;background: white;border-radius: 16px;box-shadow: 0 20px 60px rgba(0,0,0,0.3);overflow: hidden;}
+        .header {background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);color: white;padding: 3rem 3rem 2rem;position: relative;overflow: hidden;}
+        .header::before {content: '';position: absolute;top: 0;right: 0;width: 400px;height: 400px;background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);border-radius: 50%;transform: translate(30%, -30%);}
+        .header-content {position: relative;z-index: 1;}
+        .header-top {display: flex;align-items: center;gap: 2rem;margin-bottom: 1.5rem;flex-wrap: wrap;}
+        .logo-container {background: white;padding: 0.5rem 1rem;border-radius: 8px;display: flex;align-items: center;}
+        .logo-container img {height: 50px;width: auto;}
+        h1 {font-family: 'Crimson Pro', serif;font-size: 2.5rem;font-weight: 700;margin: 0;letter-spacing: -0.02em;}
+        .subtitle {font-size: 1.1rem;opacity: 0.9;font-weight: 300;margin-top: 0.5rem;}
+        .key-metrics {display: grid;grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));gap: 1.5rem;margin-top: 2rem;}
+        .metric-card {background: rgba(255,255,255,0.15);backdrop-filter: blur(10px);padding: 1.5rem;border-radius: 12px;border: 1px solid rgba(255,255,255,0.2);transition: all 0.3s ease;}
+        .metric-card:hover {transform: translateY(-4px);background: rgba(255,255,255,0.2);}
+        .metric-label {font-size: 0.85rem;opacity: 0.9;text-transform: uppercase;letter-spacing: 0.05em;margin-bottom: 0.5rem;}
+        .metric-value {font-size: 2rem;font-weight: 700;font-family: 'Crimson Pro', serif;}
+        .metric-change {font-size: 0.85rem;margin-top: 0.5rem;opacity: 0.9;}
+        .content {padding: 3rem;}
+        .section {margin-bottom: 4rem;}
+        .section-title {font-family: 'Crimson Pro', serif;font-size: 2rem;font-weight: 700;margin-bottom: 1.5rem;color: var(--primary);border-left: 4px solid var(--accent);padding-left: 1rem;}
+        .section-subtitle {font-size: 1.1rem;color: var(--secondary);margin-bottom: 2rem;line-height: 1.6;}
+        .charts-grid {display: grid;grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));gap: 2rem;margin-bottom: 2rem;}
+        .chart-card {background: white;border-radius: 12px;padding: 2rem;box-shadow: var(--card-shadow);transition: all 0.3s ease;}
+        .chart-card:hover {transform: translateY(-4px);box-shadow: 0 12px 32px rgba(0,0,0,0.15);}
+        .chart-title {font-size: 1.3rem;font-weight: 600;margin-bottom: 1.5rem;color: var(--primary);}
+        .chart-container {position: relative;height: 350px;}
+        .insights-grid {display: grid;grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));gap: 1.5rem;margin-top: 2rem;}
+        .insight-card {background: linear-gradient(135deg, #d6eaf8 0%, #aed6f1 100%);padding: 1.5rem;border-radius: 12px;border-left: 4px solid var(--info);}
+        .insight-card.warning {background: linear-gradient(135deg, #85c1e9 0%, #5dade2 100%);border-left-color: #3498db;}
+        .insight-card.danger {background: linear-gradient(135deg, #5dade2 0%, #3498db 100%);border-left-color: #2874a6;}
+        .insight-card.success {background: linear-gradient(135deg, #aed6f1 0%, #2980b9 100%);border-left-color: #1a5276;}
+        .insight-title {font-weight: 600;margin-bottom: 0.5rem;font-size: 1.1rem;}
+        .insight-text {font-size: 0.95rem;line-height: 1.5;opacity: 0.9;}
+        .table-container {overflow-x: auto;margin-top: 2rem;}
+        table {width: 100%;border-collapse: collapse;background: white;border-radius: 12px;overflow: hidden;box-shadow: var(--card-shadow);}
+        thead {background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);color: white;}
+        th {padding: 1.2rem;text-align: left;font-weight: 600;text-transform: uppercase;font-size: 0.85rem;letter-spacing: 0.05em;}
+        td {padding: 1rem 1.2rem;border-bottom: 1px solid #eee;}
+        tr:hover {background: #f8f9fa;}
+        .status-badge {display: inline-block;padding: 0.25rem 0.75rem;border-radius: 20px;font-size: 0.85rem;font-weight: 500;}
+        .status-positive {background: #d6eaf8;color: #154360;}
+        .status-negative {background: #85c1e9;color: #0b5394;}
+        .status-neutral {background: #aed6f1;color: #1a5276;}
+        .recommendations {background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);color: white;padding: 3rem;border-radius: 12px;margin-top: 3rem;}
+        .recommendations h3 {font-family: 'Crimson Pro', serif;font-size: 2rem;margin-bottom: 1.5rem;}
+        .recommendation-list {display: grid;gap: 1rem;}
+        .recommendation-item {background: rgba(255,255,255,0.15);backdrop-filter: blur(10px);padding: 1.5rem;border-radius: 8px;border-left: 4px solid white;}
+        .recommendation-item h4 {font-size: 1.2rem;margin-bottom: 0.5rem;}
+        @media (max-width: 768px) {
+            body {padding: 1rem;}
+            .header {padding: 2rem 1.5rem;}
+            h1 {font-size: 2rem;}
+            .content {padding: 1.5rem;}
+            .charts-grid {grid-template-columns: 1fr;}
+            .chart-container {height: 300px;}
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-top">
+                    <div class="logo-container">
+                        <img src="data:image/png;base64,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" alt="Kowikan Smart Treasury">
+                    </div>
+                    <div>
+                        <h1>Kowican Treasury Dashboard</h1>
+                        <p class="subtitle">Intelligent Treasury Management - Financial Performance Overview 2024</p>
+                    </div>
+                </div>
+                
+                <div class="key-metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Annual Revenue (2024)</div>
+                        <div class="metric-value">€178.5M</div>
+                        <div class="metric-change">Multi-currency operations</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Cash Conversion Cycle (2024)</div>
+                        <div class="metric-value">-3 days</div>
+                        <div class="metric-change">Excellent efficiency</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">EUR Liquidity (31/12/24)</div>
+                        <div class="metric-value">-€1.46M</div>
+                        <div class="metric-change">Critical attention required</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">JPY Surplus (31/12/24)</div>
+                        <div class="metric-value">¥28.4M</div>
+                        <div class="metric-change">Liquidity buffer</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">USD Balance (31/12/24)</div>
+                        <div class="metric-value">$73,414</div>
+                        <div class="metric-change">Year-end position</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Accounts Receivable (2024)</div>
+                        <div class="metric-value">€13.7M</div>
+                        <div class="metric-change">52 days DSO</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Accounts Payable (2024)</div>
+                        <div class="metric-value">€5.0M</div>
+                        <div class="metric-change">56 days DPO</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <section class="section">
+                <h2 class="section-title">I. Working Capital Dynamics</h2>
+                <p class="section-subtitle">Analysis of cash conversion cycle, receivables, and payables performance across multiple currencies (2024)</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Working Capital Cycle Components (days)</h3>
+                        <div class="chart-container"><canvas id="workingCapitalChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Days Sales Outstanding by Currency (days)</h3>
+                        <div class="chart-container"><canvas id="dsoChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card success">
+                        <div class="insight-title">Strong Working Capital Position</div>
+                        <div class="insight-text">Negative CCC of 3 days demonstrates exceptional efficiency - cash is collected before supplier payments are due.</div>
+                    </div>
+                    <div class="insight-card warning">
+                        <div class="insight-title">DSO-DPO Discrepancy</div>
+                        <div class="insight-text">Aggregate DSO (137 days EUR, 134 days JPY) significantly exceeds customer-level collection periods (55-57 days), suggesting older receivables requiring investigation.</div>
+                    </div>
+                    <div class="insight-card danger">
+                        <div class="insight-title">Overdue Payables Risk</div>
+                        <div class="insight-text">64% of EUR payables exceed 90 days, creating supplier relationship pressure and potential supply chain risks.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">II. Multi-Currency Position & Liquidity</h2>
+                <p class="section-subtitle">Revenue distribution, currency exposure, and liquidity position across EUR, JPY, and USD (as of 31/12/2024)</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Revenue Distribution by Currency (%)</h3>
+                        <div class="chart-container"><canvas id="revenueDistChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Liquidity Position by Currency (€ thousands)</h3>
+                        <div class="chart-container"><canvas id="liquidityChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Currency</th><th>Position</th><th>€ Equivalent</th><th>% of Total Activity</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>EUR</strong></td><td>-€1,460,000</td><td>-€1,460,000</td><td>88%</td>
+                                <td><span class="status-badge status-negative">Critical Deficit</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>JPY</strong></td><td>¥28,400,000</td><td>+€157,000</td><td>10%</td>
+                                <td><span class="status-badge status-positive">Surplus</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>USD</strong></td><td>$73,414</td><td>+€64,000</td><td>2%</td>
+                                <td><span class="status-badge status-positive">Positive</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">III. Quarterly Cash Flow Performance</h2>
+                <p class="section-subtitle">Evolution of operating cash flows throughout 2024 showing Q3 volatility and Q4 recovery (€M)</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card" style="grid-column: 1 / -1;">
+                        <h3 class="chart-title">Quarterly Cash Flow Trends (€M)</h3>
+                        <div class="chart-container"><canvas id="cashFlowChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card warning">
+                        <div class="insight-title">Q3 Volatility Observed</div>
+                        <div class="insight-text">Third quarter showed significant cash flow fluctuations, requiring enhanced monitoring and control measures.</div>
+                    </div>
+                    <div class="insight-card success">
+                        <div class="insight-title">Strong Q4 Recovery</div>
+                        <div class="insight-text">Fourth quarter demonstrated solid operational stability with improved cash generation, indicating effective management response.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">IV. Interest Rate Risk Analysis</h2>
+                <p class="section-subtitle">Variable-rate debt analysis with scenario-based interest cost projections - 225 basis points spread (2025 projection)</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Total Interest Cost by Scenario (€)</h3>
+                        <div class="chart-container"><canvas id="interestCostChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Monthly Interest Payment Evolution (€)</h3>
+                        <div class="chart-container"><canvas id="monthlyInterestChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Scenario</th><th>Interest Rate</th><th>Total Annual Interest</th><th>vs Base Case</th><th>Risk Level</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Favored Case</strong></td><td>0.19% monthly</td><td>€12,119</td><td>-€6,500 (-35%)</td>
+                                <td><span class="status-badge status-positive">Low Cost</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Base Case</strong></td><td>0.286% monthly</td><td>€18,619</td><td>Baseline</td>
+                                <td><span class="status-badge status-neutral">Normal</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Stress Case</strong></td><td>0.39% monthly</td><td>€25,119</td><td>+€6,500 (+35%)</td>
+                                <td><span class="status-badge status-negative">High Cost</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card warning">
+                        <div class="insight-title">225 Basis Points Total Spread</div>
+                        <div class="insight-text">The difference between stress (0.39%) and favored (0.19%) scenarios represents 225 basis points, creating a €13,000 total range and €6,500 variance from base case in each direction.</div>
+                    </div>
+                    <div class="insight-card success">
+                        <div class="insight-title">Natural Hedge Through Amortization</div>
+                        <div class="insight-text">Constant amortization of €83,333 monthly progressively reduces interest rate exposure, with outstanding balance declining from €1M to €83,333 by December 2025.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">V. Foreign Exchange Risk Exposure</h2>
+                <p class="section-subtitle">Sensitivity analysis and risk concentration across JPY and USD positions (January 2024 - March 2025)</p>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">FX Exposure by Currency (€ thousands)</h3>
+                        <div class="chart-container"><canvas id="fxExposureChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Impact of FX Change - Total Sum over 15 Months (€)</h3>
+                        <div class="chart-container"><canvas id="fxImpactChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Currency</th><th>Shock Scenario</th><th>March 2025 Position (€)</th><th>Total Impact 15M (€)</th><th>Risk Assessment</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="2"><strong>JPY</strong></td><td>+5% (Appreciation)</td><td>€360,814</td><td>-€32,103 Loss</td>
+                                <td><span class="status-badge status-negative">High Risk</span></td>
+                            </tr>
+                            <tr>
+                                <td>-5% (Depreciation)</td><td>€326,451</td><td>€35,482 Gain</td>
+                                <td><span class="status-badge status-positive">Opportunity</span></td>
+                            </tr>
+                            <tr>
+                                <td rowspan="2"><strong>USD</strong></td><td>+5% (Appreciation)</td><td>-€273,735</td><td>-€3,625 Loss</td>
+                                <td><span class="status-badge status-negative">Moderate Risk</span></td>
+                            </tr>
+                            <tr>
+                                <td>-5% (Depreciation)</td><td>-€247,665</td><td>€4,007 Gain</td>
+                                <td><span class="status-badge status-positive">Benefit</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card danger">
+                        <div class="insight-title">Concentrated March 2025 Risk</div>
+                        <div class="insight-text">Maximum FX exposure occurs in March 2025 with large long JPY position (¥62.1M ≈ €343,632) coinciding with significant USD obligations (-$299K ≈ -€260K), creating timing mismatch requiring active hedging.</div>
+                    </div>
+                    <div class="insight-card warning">
+                        <div class="insight-title">Asymmetrical Risk Profile</div>
+                        <div class="insight-text">Company is most vulnerable to JPY appreciation (€32,103 cumulative loss over 15 months) and USD appreciation (€3,625 loss), with combined potential adverse impact of €35,728 under 5% movements.</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="recommendations">
+                <h3>Strategic Recommendations & Action Plan</h3>
+                <div class="recommendation-list">
+                    <div class="recommendation-item">
+                        <h4>1. Immediate EUR Liquidity Management</h4>
+                        <p>Address the critical EUR deficit of €1.46M through structured conversion of JPY surplus and securing competitive short-term credit facilities.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>2. Interest Rate Hedging Strategy</h4>
+                        <p>Convert 60% of variable-rate debt to fixed rates. The 225 basis points spread (€13,000 total range, €6,500 vs base case) justifies implementing caps or collars to limit upside risk.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>3. Forward Contract Hedging for FX</h4>
+                        <p><strong>JPY:</strong> Progressive hedging 50-70% for Jan-Mar 2025 inflows. <strong>USD:</strong> Hedge March 2025 outflows at 70-100% to eliminate dollar appreciation risk.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>4. Natural Hedge Development</h4>
+                        <p>Use JPY inflows to settle Japanese supplier invoices directly. Increase USD-denominated revenue to offset March 2025 USD outflows.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>5. Intercompany Netting Implementation</h4>
+                        <p>Establish centralized treasury across French, German, and Japanese subsidiaries to reduce external conversion volumes and banking fees.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>6. Receivables Investigation & Collection</h4>
+                        <p>Analyze older receivables causing DSO discrepancy. Implement accelerated collection procedures and review credit policies.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>7. Supplier Relationship Management</h4>
+                        <p>Address 64% of EUR payables exceeding 90 days through negotiated payment plans and improved cash flow forecasting.</p>
+                    </div>
+                    <div class="recommendation-item">
+                        <h4>8. Investment Strategy Optimization</h4>
+                        <p>Prioritize highly liquid short-term placements. Only invest JPY surplus if returns exceed implicit EUR conversion costs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        Chart.defaults.font.family = "'Libre Franklin', sans-serif";
+        Chart.defaults.color = '#2c3e50';
+
+        new Chart(document.getElementById('workingCapitalChart'), {
+            type: 'bar',
+            data: {
+                labels: ['DSO', 'DIO', 'DPO', 'CCC'],
+                datasets: [{label: 'Days', data: [52, 7, 56, -3], backgroundColor: ['#2a5298', '#3498db', '#5dade2', '#2980b9'], borderRadius: 8}]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}, x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('dsoChart'), {
+            type: 'bar',
+            data: {
+                labels: ['EUR Aggregate', 'EUR Customer', 'JPY Aggregate', 'JPY Customer'],
+                datasets: [{label: 'DSO (Days)', data: [137, 55, 134, 45], backgroundColor: ['#5dade2', '#2980b9', '#85c1e9', '#3498db'], borderRadius: 8}]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}, x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('revenueDistChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['EUR (88%)', 'JPY (10%)', 'USD (2%)'],
+                datasets: [{data: [88, 10, 2], backgroundColor: ['#2a5298', '#5dade2', '#85c1e9'], borderWidth: 0, hoverOffset: 15}]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom'}}}
+        });
+
+        new Chart(document.getElementById('liquidityChart'), {
+            type: 'bar',
+            data: {
+                labels: ['EUR', 'JPY', 'USD', 'Net'],
+                datasets: [{label: '€K', data: [-1460, 157, 64, -1239], backgroundColor: ctx => ctx.raw < 0 ? '#5dade2' : '#2980b9', borderRadius: 8}]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('cashFlowChart'), {
+            type: 'line',
+            data: {
+                labels: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                datasets: [
+                    {label: 'Operating CF', data: [42.5, 45.2, 38.1, 52.7], borderColor: '#2a5298', backgroundColor: 'rgba(42, 82, 152, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 6},
+                    {label: 'Collections', data: [46.8, 47.5, 42.3, 55.9], borderColor: '#2980b9', backgroundColor: 'rgba(41, 128, 185, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 6},
+                    {label: 'Payments', data: [-43.2, -44.8, -46.5, -48.1], borderColor: '#5dade2', backgroundColor: 'rgba(93, 173, 226, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 6}
+                ]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'top'}}, scales: {x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('interestCostChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Favored', 'Base', 'Stress'],
+                datasets: [{label: '€', data: [12119, 18619, 25119], backgroundColor: ['#2980b9', '#3498db', '#5dade2'], borderRadius: 8}]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, plugins: {
+                    legend: {display: false},
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const v = ctx.parsed.y, d = v - 18619, p = ((d / 18619) * 100).toFixed(0);
+                                return ['Total: €' + v.toLocaleString(), 'vs Base: ' + (d > 0 ? '+' : '') + '€' + d.toLocaleString() + ' (' + p + '%)'];
+                            }
+                        }
+                    }
+                },
+                scales: {y: {beginAtZero: true}, x: {grid: {display: false}}}
+            }
+        });
+
+        new Chart(document.getElementById('monthlyInterestChart'), {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {label: 'Stress (0.39%)', data: [3864, 3542, 3220, 2898, 2576, 2254, 1932, 1610, 1288, 966, 644, 322], borderColor: '#5dade2', borderWidth: 3, tension: 0.4},
+                    {label: 'Base (0.286%)', data: [2864, 2625, 2387, 2148, 1910, 1671, 1433, 1194, 956, 717, 479, 238], borderColor: '#3498db', borderWidth: 3, tension: 0.4},
+                    {label: 'Favored (0.19%)', data: [1864, 1708, 1553, 1398, 1242, 1087, 932, 776, 621, 466, 310, 155], borderColor: '#2980b9', borderWidth: 3, tension: 0.4}
+                ]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'top'}}, scales: {y: {beginAtZero: true}, x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('fxExposureChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Jan 2025', 'Feb 2025', 'Mar 2025'],
+                datasets: [
+                    {label: 'JPY', data: [285, 312, 344], backgroundColor: '#5dade2', borderRadius: 8},
+                    {label: 'USD', data: [-45, -78, -260], backgroundColor: '#85c1e9', borderRadius: 8}
+                ]
+            },
+            options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'top'}}, scales: {x: {grid: {display: false}}}}
+        });
+
+        new Chart(document.getElementById('fxImpactChart'), {
+            type: 'bar',
+            data: {
+                labels: ['JPY +5%', 'JPY Base', 'JPY -5%', 'USD +5%', 'USD Base', 'USD -5%'],
+                datasets: [{
+                    label: '€',
+                    data: [-32103, 0, 35482, -3625, 0, 4007],
+                    backgroundColor: ctx => ctx.raw < 0 ? '#5dade2' : '#2980b9',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {display: false},
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const v = ctx.parsed.y;
+                                if (v === 0) return 'Baseline';
+                                return (v > 0 ? 'Gain: ' : 'Loss: ') + '€' + Math.abs(v).toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {x: {grid: {display: false}}}
+            }
+        });
+    </script>
+</body>
+</html>
